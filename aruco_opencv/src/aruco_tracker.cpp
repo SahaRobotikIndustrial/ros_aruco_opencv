@@ -65,6 +65,7 @@ class ArucoTracker : public rclcpp_lifecycle::LifecycleNode
   int image_sub_qos_depth_;
   std::string image_transport_;
   std::string board_descriptions_path_;
+  bool enabled_;
 
   // ROS
   OnSetParametersCallbackHandle::SharedPtr on_set_parameter_callback_handle_;
@@ -147,6 +148,8 @@ public:
 
     detection_pub_->on_activate();
     debug_pub_->on_activate();
+
+    enabled_ = false;
 
     on_set_parameter_callback_handle_ =
       add_on_set_parameters_callback(
@@ -241,6 +244,7 @@ protected:
     declare_param(*this, "publish_tf", true, true);
     declare_param(*this, "marker_size", 0.15, true);
     declare_param(*this, "board_descriptions_path", "");
+    declare_param(*this, "enabled", false);
 
     declare_aruco_parameters(*this);
   }
@@ -269,6 +273,7 @@ protected:
     get_parameter("image_sub_qos.reliability", image_sub_qos_reliability_);
     get_parameter("image_sub_qos.durability", image_sub_qos_durability_);
     get_parameter("image_sub_qos.depth", image_sub_qos_depth_);
+    get_parameter("enabled", enabled_);
 
     get_parameter("publish_tf", publish_tf_);
     RCLCPP_INFO_STREAM(get_logger(), "TF publishing is " << (publish_tf_ ? "enabled" : "disabled"));
@@ -416,6 +421,11 @@ protected:
       return;
     }
 
+    if(!enabled_)
+    {
+      RCLCPP_DEBUG(get_logger(), "Aruco node is disabled");
+      return;
+    }
     if (img_msg->header.stamp == last_msg_stamp_) {
       RCLCPP_DEBUG(
         get_logger(),
