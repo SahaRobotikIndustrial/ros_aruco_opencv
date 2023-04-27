@@ -12,6 +12,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV ${OpenCV_VERSION} REQUIRED COMPONENTS aruco)
 find_package(yaml-cpp REQUIRED)
+find_package(cartographer_ros_msgs REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/aruco_tracker.cpp
@@ -30,6 +31,7 @@ target_link_libraries(${PROJECT_NAME}
 ament_target_dependencies(${PROJECT_NAME}
   aruco_opencv_msgs
   cv_bridge
+  cartographer_ros_msgs
 )
 target_include_directories(${PROJECT_NAME}
   PRIVATE

@@ -37,6 +37,8 @@
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>yaml-cpp</exec_depend>
 
+  <depend>cartographer_ros_msgs</depend>
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_copyright</test_depend>
   <test_depend>ament_cmake_cpplint</test_depend>
