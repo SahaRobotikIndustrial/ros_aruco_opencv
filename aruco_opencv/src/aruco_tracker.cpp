@@ -551,7 +551,7 @@ protected:
 
         landmark.id = std::to_string(marker_pose.marker_id);
         //convert to int and compare to check if is high than min_board_id_for_mapping
-        if (std::stoi(landmark.id) < min_board_id_for_mapping) {
+        if (std::stoi(landmark.id) > min_board_id_for_mapping) {
           continue;
         }
         landmark.tracking_from_landmark_transform = marker_pose.pose;
