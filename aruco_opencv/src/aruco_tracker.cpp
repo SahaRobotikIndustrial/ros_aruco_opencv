@@ -68,6 +68,7 @@ class ArucoTracker : public rclcpp_lifecycle::LifecycleNode
   int image_sub_qos_depth_;
   std::string image_transport_;
   std::string board_descriptions_path_;
+  int min_board_id_for_mapping;
 
   // ROS
   OnSetParametersCallbackHandle::SharedPtr on_set_parameter_callback_handle_;
@@ -252,6 +253,7 @@ protected:
     declare_param(*this, "publish_tf", true, true);
     declare_param(*this, "marker_size", 0.15, true);
     declare_param(*this, "board_descriptions_path", "");
+    declare_param(*this, "min_board_id_for_mapping", 40);
 
     declare_aruco_parameters(*this);
   }
@@ -287,6 +289,7 @@ protected:
     get_param(*this, "marker_size", marker_size_, "Marker size: ");
 
     get_parameter("board_descriptions_path", board_descriptions_path_);
+    get_parameter("min_board_id_for_mapping", min_board_id_for_mapping);
 
     RCLCPP_INFO(get_logger(), "Aruco Parameters:");
     retrieve_aruco_parameters(*this, detector_parameters_, true);
@@ -547,6 +550,10 @@ protected:
         cartographer_ros_msgs::msg::LandmarkEntry landmark;
 
         landmark.id = std::to_string(marker_pose.marker_id);
+        //convert to int and compare to check if is high than min_board_id_for_mapping
+        if (std::stoi(landmark.id) < min_board_id_for_mapping) {
+          continue;
+        }
         landmark.tracking_from_landmark_transform = marker_pose.pose;
         landmark.translation_weight = 1.0;
         landmark.rotation_weight = 1.0;
