@@ -529,7 +529,6 @@ protected:
         transform.transform = tf2::toMsg(tf_transform);
         transforms.push_back(transform);
       }
-
       for (auto & board_pose : detection.boards) {
         geometry_msgs::msg::TransformStamped transform;
         transform.header.stamp = detection.header.stamp;
