@@ -28,7 +28,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "cv_bridge/cv_bridge.hpp"
+
+#include "cartographer_ros_msgs/msg/landmark_list.hpp"
+#include "cartographer_ros_msgs/msg/landmark_entry.hpp"
+
+#include "cv_bridge/cv_bridge.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
@@ -64,12 +68,15 @@ class ArucoTracker : public rclcpp_lifecycle::LifecycleNode
   int image_sub_qos_depth_;
   std::string image_transport_;
   std::string board_descriptions_path_;
+  int min_board_id_for_mapping;
 
   // ROS
   OnSetParametersCallbackHandle::SharedPtr on_set_parameter_callback_handle_;
   rclcpp_lifecycle::LifecyclePublisher<aruco_opencv_msgs::msg::ArucoDetection>::SharedPtr
     detection_pub_;
   rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::Image>::SharedPtr debug_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<cartographer_ros_msgs::msg::LandmarkList>::SharedPtr
+    landmark_pub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
   rclcpp::Time last_msg_stamp_;
@@ -129,6 +136,8 @@ public:
     detection_pub_ = create_publisher<aruco_opencv_msgs::msg::ArucoDetection>(
       "aruco_detections", 5);
     debug_pub_ = create_publisher<sensor_msgs::msg::Image>("~/debug", 5);
+    landmark_pub_ = create_publisher<cartographer_ros_msgs::msg::LandmarkList>(
+      "landmark", 5);
 
     return LifecycleNodeInterface::CallbackReturn::SUCCESS;
   }
@@ -146,6 +155,7 @@ public:
 
     detection_pub_->on_activate();
     debug_pub_->on_activate();
+    landmark_pub_->on_activate();
 
     on_set_parameter_callback_handle_ =
       add_on_set_parameters_callback(
@@ -189,6 +199,7 @@ public:
 
     detection_pub_->on_deactivate();
     debug_pub_->on_deactivate();
+    landmark_pub_->on_deactivate();
 
     return LifecycleNodeInterface::CallbackReturn::SUCCESS;
   }
@@ -201,6 +212,7 @@ public:
     dictionary_.reset();
     detector_parameters_.reset();
     detection_pub_.reset();
+    landmark_pub_.reset();
     debug_pub_.reset();
 
     return LifecycleNodeInterface::CallbackReturn::SUCCESS;
@@ -219,6 +231,7 @@ public:
     detector_parameters_.reset();
     detection_pub_.reset();
     debug_pub_.reset();
+    landmark_pub_.reset();
 
     return LifecycleNodeInterface::CallbackReturn::SUCCESS;
   }
@@ -240,6 +253,7 @@ protected:
     declare_param(*this, "publish_tf", true, true);
     declare_param(*this, "marker_size", 0.15, true);
     declare_param(*this, "board_descriptions_path", "");
+    declare_param(*this, "min_board_id_for_mapping", 40);
 
     declare_aruco_parameters(*this);
   }
@@ -275,6 +289,7 @@ protected:
     get_param(*this, "marker_size", marker_size_, "Marker size: ");
 
     get_parameter("board_descriptions_path", board_descriptions_path_);
+    get_parameter("min_board_id_for_mapping", min_board_id_for_mapping);
 
     RCLCPP_INFO(get_logger(), "Aruco Parameters:");
     retrieve_aruco_parameters(*this, detector_parameters_, true);
@@ -525,6 +540,28 @@ protected:
         transforms.push_back(transform);
       }
       tf_broadcaster_->sendTransform(transforms);
+
+      cartographer_ros_msgs::msg::LandmarkList landmark_list;
+      landmark_list.header.stamp = detection.header.stamp;
+      landmark_list.header.frame_id = detection.header.frame_id;
+
+      for (auto & marker_pose : detection.markers) {
+        cartographer_ros_msgs::msg::LandmarkEntry landmark;
+
+        landmark.id = std::to_string(marker_pose.marker_id);
+        //convert to int and compare to check if is high than min_board_id_for_mapping
+        if (std::stoi(landmark.id) < min_board_id_for_mapping) {
+          continue;
+        }
+        landmark.tracking_from_landmark_transform = marker_pose.pose;
+        landmark.translation_weight = 1.0;
+        landmark.rotation_weight = 1.0;
+        landmark_list.landmarks.push_back(landmark);
+      }
+
+
+      landmark_pub_->publish(landmark_list);
+      
     }
 
     detection_pub_->publish(detection);
