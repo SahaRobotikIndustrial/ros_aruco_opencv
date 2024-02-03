@@ -71,6 +71,7 @@ class ArucoTracker : public rclcpp_lifecycle::LifecycleNode
   int min_board_id_for_mapping;
   double translation_weight_;
   double rotation_weight_;
+  bool auto_start_;
 
   // ROS
   OnSetParametersCallbackHandle::SharedPtr on_set_parameter_callback_handle_;
@@ -258,7 +259,7 @@ protected:
     declare_param(*this, "min_board_id_for_mapping", 40);
     declare_param(*this, "translation_weight", 1.0);
     declare_param(*this, "rotation_weight", 1.0);
-
+    declare_param(*this, "auto_start", false, false);
     declare_aruco_parameters(*this);
   }
 
@@ -269,6 +270,10 @@ protected:
     get_parameter("image_is_rectified", image_is_rectified_);
     RCLCPP_INFO_STREAM(
       get_logger(), "Assume images are rectified: " << (image_is_rectified_ ? "YES" : "NO"));
+
+    get_parameter("auto_start", auto_start_);
+    RCLCPP_INFO_STREAM(
+      get_logger(), "AutoStart is enabled: " << (auto_start_ ? "YES" : "NO"));
 
     get_parameter("output_frame", output_frame_);
     if (output_frame_.empty()) {
@@ -607,8 +612,8 @@ public:
   : ArucoTracker(options)
   {
     auto new_state = configure();
-    if (new_state.label() == "inactive") {
-      activate();
+    if (new_state.label() == "inactive" and auto_start_) {
+      activate(); 
     }
   }
 };
@@ -617,4 +622,4 @@ public:
 
 #include "rclcpp_components/register_node_macro.hpp"
 RCLCPP_COMPONENTS_REGISTER_NODE(aruco_opencv::ArucoTracker)
-RCLCPP_COMPONENTS_REGISTER_NODE(aruco_opencv::ArucoTrackerAutostart)
+RCLCPP_COMPONENTS_REGISTER_NODE(aruco_opencv::ArucoTrackerAutostart) 
