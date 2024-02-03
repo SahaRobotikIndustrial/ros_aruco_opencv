@@ -71,7 +71,7 @@ class ArucoTracker : public rclcpp_lifecycle::LifecycleNode
   int min_board_id_for_mapping;
   double translation_weight_;
   double rotation_weight_;
-  bool auto_start_;
+  
 
   // ROS
   OnSetParametersCallbackHandle::SharedPtr on_set_parameter_callback_handle_;
@@ -240,6 +240,7 @@ public:
   }
 
 protected:
+  bool auto_start_;
   void declare_parameters()
   {
     declare_param(*this, "cam_base_topic", "camera/image_raw");
